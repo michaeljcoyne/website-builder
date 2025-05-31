@@ -1,0 +1,29 @@
+{
+  "name": "website-builder",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.8",
+    "@tailwindcss/vite": "^4.1.8",
+    "@vueuse/integrations": "^13.3.0",
+    "axios": "^1.9.0",
+    "lucide-vue-next": "^0.511.0",
+    "universal-cookie": "^7.2.2",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.4",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.4",
+    "tailwindcss": "^4.1.8",
+    "vite": "^6.2.4",
+    "vite-plugin-vue-devtools": "^7.7.6"
+  }
+}
