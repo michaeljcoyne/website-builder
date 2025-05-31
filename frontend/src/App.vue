@@ -21,6 +21,7 @@
                             :elements="elements"
                             :selectedElement="selectedElement"
                             @update:selectedElement="setSelectedElement"
+                            @update:elements="setElements"
                         />
                         <PropertiesPanel
                             :selectedElement="selectedElement"
@@ -68,6 +69,7 @@ const setSelectedElement = (id) => {
 }
 
 const setElements = (newElements) => {
+    console.log('📝 App.vue setElements called with:', newElements)
     elements.value = newElements
     scheduleAutoSave()
 }
