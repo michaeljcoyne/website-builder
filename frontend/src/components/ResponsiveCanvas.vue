@@ -1,226 +1,235 @@
-<!-- Enhanced Canvas.vue with Grid System and Snapping -->
 <template>
-    <div class="flex-1 relative bg-white">
-        <!-- Grid Overlay -->
-        <div
-            v-if="showGrid"
-            class="absolute inset-0 pointer-events-none z-10"
-            :style="gridStyle"
-        ></div>
-
-        <!-- Canvas -->
-        <div
-            ref="canvasRef"
-            :class="[
-        'w-full h-full relative overflow-hidden',
-        { 'bg-blue-50': dragOver, 'cursor-copy': isDragging }
-      ]"
-            @dragover="handleDragOver"
-            @dragleave="handleDragLeave"
-            @drop="handleDrop"
-            @click="$emit('update:selectedElement', null)"
-            @contextmenu.prevent="handleRightClick"
-        >
-            <!-- Empty State -->
-            <div v-if="elements.length === 0 && !isDragging"
-                 class="absolute inset-0 flex items-center justify-center text-gray-400">
-                <div class="text-center">
-                    <Grid3X3 class="w-16 h-16 mx-auto mb-4 opacity-50"/>
-                    <div class="text-lg mb-2">Start building your website</div>
-                    <div class="text-sm">Drag components from the sidebar to get started</div>
-                </div>
-            </div>
-
-            <!-- Drop Indicator -->
-            <div v-if="isDragging"
-                 class="absolute inset-0 flex items-center justify-center text-blue-500 bg-blue-50/50 border-2 border-dashed border-blue-300">
-                <div class="text-center">
-                    <div class="text-lg mb-2">Drop component here</div>
-                    <div class="text-sm">Release to add {{ draggedItem?.name }} to your page</div>
-                </div>
-            </div>
-
-            <!-- Debug Info -->
-            <!--<div class="absolute top-4 right-4 bg-white p-2 rounded shadow text-xs max-w-xs">
-                <div class="font-semibold mb-1">Canvas Debug:</div>
-                <div>Total elements: {{ elements.length }}</div>
-                <div>Visible elements: {{ visibleElements.length }}</div>
-                <div v-if="selectedElement">Selected: {{ selectedElement }}</div>
-                <div class="mt-2 space-y-1">
-                    <div v-for="element in elements" :key="element.id" class="text-xs">
-                        {{ element.name }}:
-                        <span :class="element.properties?.hidden ? 'text-red-500' : 'text-green-500'">
-        {{ element.properties?.hidden ? 'Hidden' : 'Visible' }}
-      </span>
-                        <span :class="element.properties?.locked ? 'text-red-500' : 'text-blue-500'">
-        {{ element.properties?.locked ? ' Locked' : ' Unlocked' }}
-      </span>
-                    </div>
-                </div>
-            </div>-->
-
-            <!-- Elements -->
+    <div class="flex-1 relative bg-gray-100">
+        <!-- Canvas Container with Responsive Frame -->
+        <div class="w-full h-full flex items-center justify-center p-4 overflow-auto">
             <div
-                v-for="element in elements"
-                :key="element.id"
-                v-show="!element.properties?.hidden"
-                :class="[
-    'absolute border-2 transition-all duration-200',
-    selectedElement === element.id ? 'border-blue-500 shadow-lg' : 'border-transparent hover:border-gray-300',
-    element.properties?.locked ? 'cursor-not-allowed' : 'cursor-pointer'
-  ]"
-                :style="{
-    left: element.x + 'px',
-    top: element.y + 'px',
-    width: element.width + 'px',
-    height: element.height + 'px',
-    zIndex: selectedElement === element.id ? 1000 : element.zIndex || 1,
-    opacity: element.properties?.locked ? 0.7 : 1,
-    backgroundColor: element.properties?.hidden ? 'rgba(255,0,0,0.1)' : 'transparent'
-  }"
-                @click.stop="handleElementClick(element)"
-                @mousedown="handleElementMouseDown(element, $event)"
+                class="bg-white shadow-lg transition-all duration-300 relative"
+                :style="canvasStyle"
             >
-                <!-- Element Content -->
-                <div class="w-full h-full relative">
-                    <!-- Text Element -->
-                    <div
-                        v-if="element.type === 'text'"
-                        class="p-2 h-full flex items-center overflow-hidden"
-                        :style="{
-              fontSize: element.properties.fontSize + 'px',
-              color: element.properties.color,
-              fontWeight: element.properties.fontWeight || 'normal',
-              textAlign: element.properties.textAlign || 'left'
-            }"
-                    >
-                        {{ element.properties.content }}
+                <!-- Grid Overlay -->
+                <div
+                    v-if="props.showGrid"
+                    class="absolute inset-0 pointer-events-none z-10"
+                    :style="gridStyle"
+                ></div>
+
+                <!-- Breakpoint Indicator -->
+                <div class="absolute top-2 left-2 z-50 rounded shadow-sm border px-3 py-2"
+                     :class="getCurrentBreakpoint()?.id === 'mobile' ? 'bg-green-100 border-green-500' :
+                             getCurrentBreakpoint()?.id === 'tablet' ? 'bg-orange-100 border-orange-500' :
+                             'bg-blue-100 border-blue-500'">
+                    <div class="flex items-center gap-2 text-sm font-medium">
+                        <component :is="getCurrentBreakpoint()?.icon" class="h-4 w-4"
+                                   :class="getCurrentBreakpoint()?.id === 'mobile' ? 'text-green-700' :
+                                           getCurrentBreakpoint()?.id === 'tablet' ? 'text-orange-700' :
+                                           'text-blue-700'" />
+                        <span :class="getCurrentBreakpoint()?.id === 'mobile' ? 'text-green-800' :
+                                      getCurrentBreakpoint()?.id === 'tablet' ? 'text-orange-800' :
+                                      'text-blue-800'">
+                            {{ getCurrentBreakpoint()?.name }}
+                        </span>
+                        <span class="text-gray-600">{{ getCurrentBreakpoint()?.width }}px</span>
+                        <div class="w-2 h-2 rounded-full animate-pulse"
+                             :class="getCurrentBreakpoint()?.id === 'mobile' ? 'bg-green-500' :
+                                     getCurrentBreakpoint()?.id === 'tablet' ? 'bg-orange-500' :
+                                     'bg-blue-500'"
+                             title="Active breakpoint"></div>
                     </div>
+                </div>
 
-                    <!-- Heading Element -->
-                    <component
-                        v-else-if="element.type === 'heading'"
-                        :is="`h${element.properties.level}`"
-                        class="p-2 h-full flex items-center font-bold overflow-hidden"
-                        :style="{
-              fontSize: element.properties.fontSize + 'px',
-              color: element.properties.color,
-              textAlign: element.properties.textAlign || 'left'
-            }"
-                    >
-                        {{ element.properties.content }}
-                    </component>
-
-                    <!-- Button Element -->
-                    <button
-                        v-else-if="element.type === 'button'"
-                        class="w-full h-full rounded px-4 py-2 transition-all duration-200 hover:opacity-90"
-                        :style="{
-              backgroundColor: element.properties.backgroundColor,
-              color: element.properties.textColor,
-              fontSize: element.properties.fontSize || '16px',
-              border: element.properties.border || 'none',
-              borderRadius: element.properties.borderRadius || '4px'
-            }"
-                        @click.stop
-                    >
-                        {{ element.properties.text }}
-                    </button>
-
-                    <!-- Image Element -->
-                    <img
-                        v-else-if="element.type === 'image'"
-                        :src="element.properties.src || '/placeholder.svg'"
-                        :alt="element.properties.alt"
-                        class="w-full h-full object-cover rounded"
-                        :style="{
-              objectFit: element.properties.objectFit || 'cover',
-              borderRadius: element.properties.borderRadius || '0px'
-            }"
-                    />
-
-                    <!-- Container Element -->
-                    <div
-                        v-else-if="element.type === 'container'"
-                        class="w-full h-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-500"
-                        :style="{
-              backgroundColor: element.properties.backgroundColor || 'transparent',
-              padding: element.properties.padding || '20px'
-            }"
-                    >
+                <!-- Canvas Content -->
+                <div
+                    ref="canvasRef"
+                    class="relative overflow-hidden"
+                    :style="canvasContentStyle"
+                    :class="{ 'bg-blue-50': dragOver, 'cursor-copy': isDragging }"
+                    @dragover="handleDragOver"
+                    @dragleave="handleDragLeave"
+                    @drop="handleDrop"
+                    @click="$emit('update:selectedElement', null)"
+                    @contextmenu.prevent="handleRightClick"
+                >
+                    <!-- Empty State -->
+                    <div v-if="visibleElements.length === 0 && !isDragging"
+                         class="absolute inset-0 flex items-center justify-center text-gray-400">
                         <div class="text-center">
-                            <Layout class="w-8 h-8 mx-auto mb-2"/>
-                            <div class="text-sm">Container</div>
+                            <Grid3X3 class="w-16 h-16 mx-auto mb-4 opacity-50" />
+                            <div class="text-lg mb-2">Start building your website</div>
+                            <div class="text-sm">Drag components from the sidebar to get started</div>
                         </div>
                     </div>
 
-                    <!-- Default Element -->
-                    <div v-else class="w-full h-full bg-gray-200 rounded flex items-center justify-center">
-                        <div class="text-center text-gray-600">
-                            <Square class="w-6 h-6 mx-auto mb-1"/>
-                            <div class="text-xs">{{ element.name }}</div>
+                    <!-- Drop Indicator -->
+                    <div v-if="isDragging"
+                         class="absolute inset-0 flex items-center justify-center text-blue-500 bg-blue-50/50 border-2 border-dashed border-blue-300 z-20">
+                        <div class="text-center">
+                            <div class="text-lg mb-2">Drop component here</div>
+                            <div class="text-sm">Release to add {{ draggedItem?.name }} to your page</div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Selection Controls -->
-                <div v-if="selectedElement === element.id" class="absolute inset-0 pointer-events-none">
-                    <!-- Resize Handles -->
+                    <!-- Elements with Responsive Properties -->
                     <div
-                        class="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-nw-resize pointer-events-auto"
-                        @mousedown.stop="startResize(element, 'nw', $event)"></div>
-                    <div
-                        class="absolute -top-1 right-1/2 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-n-resize pointer-events-auto"
-                        @mousedown.stop="startResize(element, 'n', $event)"></div>
-                    <div
-                        class="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-ne-resize pointer-events-auto"
-                        @mousedown.stop="startResize(element, 'ne', $event)"></div>
-                    <div
-                        class="absolute top-1/2 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-e-resize pointer-events-auto"
-                        @mousedown.stop="startResize(element, 'e', $event)"></div>
-                    <div
-                        class="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-se-resize pointer-events-auto"
-                        @mousedown.stop="startResize(element, 'se', $event)"></div>
-                    <div
-                        class="absolute -bottom-1 left-1/2 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-s-resize pointer-events-auto"
-                        @mousedown.stop="startResize(element, 's', $event)"></div>
-                    <div
-                        class="absolute -bottom-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-sw-resize pointer-events-auto"
-                        @mousedown.stop="startResize(element, 'sw', $event)"></div>
-                    <div
-                        class="absolute top-1/2 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-w-resize pointer-events-auto"
-                        @mousedown.stop="startResize(element, 'w', $event)"></div>
-                </div>
+                        v-for="element in visibleElements"
+                        :key="element.id"
+                        :class="[
+                            'absolute border-2 transition-all duration-200',
+                            selectedElement === element.id ? 'border-blue-500 shadow-lg' : 'border-transparent hover:border-gray-300',
+                            element.properties?.locked ? 'cursor-not-allowed' : 'cursor-pointer'
+                        ]"
+                        :style="getElementStyle(element)"
+                        @click.stop="handleElementClick(element)"
+                        @mousedown="handleElementMouseDown(element, $event)"
+                    >
+                        <!-- Element Content -->
+                        <div class="w-full h-full relative">
+                            <!-- Text Element -->
+                            <div
+                                v-if="element.type === 'text'"
+                                class="p-2 h-full flex items-center overflow-hidden"
+                                :style="{
+                                    fontSize: element.properties.fontSize + 'px',
+                                    color: element.properties.color,
+                                    fontWeight: element.properties.fontWeight || 'normal',
+                                    textAlign: element.properties.textAlign || 'left'
+                                }"
+                            >
+                                {{ element.properties.content }}
+                            </div>
 
-                <!-- Action Buttons for Selected Element -->
-                <div v-if="selectedElement === element.id" class="absolute -top-10 left-0 flex gap-1 z-50">
-                    <button
-                        @click.stop="duplicateElement(element.id)"
-                        class="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
-                        title="Duplicate"
-                    >
-                        <Copy class="h-3 w-3"/>
-                    </button>
-                    <button
-                        @click.stop="handleDelete(element.id)"
-                        class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition-colors"
-                        title="Delete"
-                    >
-                        <Trash2 class="h-3 w-3"/>
-                    </button>
+                            <!-- Heading Element -->
+                            <component
+                                v-else-if="element.type === 'heading'"
+                                :is="`h${element.properties.level}`"
+                                class="p-2 h-full flex items-center font-bold overflow-hidden"
+                                :style="{
+                                    fontSize: element.properties.fontSize + 'px',
+                                    color: element.properties.color,
+                                    textAlign: element.properties.textAlign || 'left'
+                                }"
+                            >
+                                {{ element.properties.content }}
+                            </component>
+
+                            <!-- Button Element -->
+                            <button
+                                v-else-if="element.type === 'button'"
+                                class="w-full h-full rounded px-4 py-2 transition-all duration-200 hover:opacity-90"
+                                :style="{
+                                    backgroundColor: element.properties.backgroundColor,
+                                    color: element.properties.textColor,
+                                    fontSize: element.properties.fontSize || '16px',
+                                    border: element.properties.border || 'none',
+                                    borderRadius: element.properties.borderRadius || '4px'
+                                }"
+                                @click.stop
+                            >
+                                {{ element.properties.text }}
+                            </button>
+
+                            <!-- Image Element -->
+                            <img
+                                v-else-if="element.type === 'image'"
+                                :src="element.properties.src || '/placeholder.svg'"
+                                :alt="element.properties.alt"
+                                class="w-full h-full object-cover rounded"
+                                :style="{
+                                    objectFit: element.properties.objectFit || 'cover',
+                                    borderRadius: element.properties.borderRadius || '0px'
+                                }"
+                            />
+
+                            <!-- Container Element -->
+                            <div
+                                v-else-if="element.type === 'container'"
+                                class="w-full h-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-500"
+                                :style="{
+                                    backgroundColor: element.properties.backgroundColor || 'transparent',
+                                    padding: element.properties.padding || '20px'
+                                }"
+                            >
+                                <div class="text-center">
+                                    <Layout class="w-8 h-8 mx-auto mb-2" />
+                                    <div class="text-sm">Container</div>
+                                </div>
+                            </div>
+
+                            <!-- Default Element -->
+                            <div v-else class="w-full h-full bg-gray-200 rounded flex items-center justify-center">
+                                <div class="text-center text-gray-600">
+                                    <Square class="w-6 h-6 mx-auto mb-1" />
+                                    <div class="text-xs">{{ element.name }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Selection Controls -->
+                        <div v-if="selectedElement === element.id" class="absolute inset-0 pointer-events-none">
+                            <!-- Resize Handles -->
+                            <div class="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-nw-resize pointer-events-auto"
+                                 @mousedown.stop="startResize(element, 'nw', $event)"></div>
+                            <div class="absolute -top-1 right-1/2 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-n-resize pointer-events-auto"
+                                 @mousedown.stop="startResize(element, 'n', $event)"></div>
+                            <div class="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-ne-resize pointer-events-auto"
+                                 @mousedown.stop="startResize(element, 'ne', $event)"></div>
+                            <div class="absolute top-1/2 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-e-resize pointer-events-auto"
+                                 @mousedown.stop="startResize(element, 'e', $event)"></div>
+                            <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-se-resize pointer-events-auto"
+                                 @mousedown.stop="startResize(element, 'se', $event)"></div>
+                            <div class="absolute -bottom-1 left-1/2 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-s-resize pointer-events-auto"
+                                 @mousedown.stop="startResize(element, 's', $event)"></div>
+                            <div class="absolute -bottom-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-sw-resize pointer-events-auto"
+                                 @mousedown.stop="startResize(element, 'sw', $event)"></div>
+                            <div class="absolute top-1/2 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-w-resize pointer-events-auto"
+                                 @mousedown.stop="startResize(element, 'w', $event)"></div>
+                        </div>
+
+                        <!-- Action Buttons for Selected Element -->
+                        <div v-if="selectedElement === element.id" class="absolute -top-8 left-0 flex gap-1 z-50">
+                            <button
+                                @click.stop="duplicateElement(element.id)"
+                                class="bg-blue-500 text-white px-1.5 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
+                                title="Duplicate Element"
+                            >
+                                <Copy class="h-3 w-3" />
+                            </button>
+                            <button
+                                @click.stop="handleDelete(element.id)"
+                                class="bg-red-500 text-white px-1.5 py-1 rounded text-xs hover:bg-red-600 transition-colors"
+                                title="Delete Element"
+                            >
+                                <Trash2 class="h-3 w-3" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Responsive Guidelines -->
+                    <div v-if="props.showResponsiveGuides" class="absolute inset-0 pointer-events-none z-40">
+                        <div
+                            v-for="guide in responsiveGuides"
+                            :key="guide.width"
+                            class="absolute h-full border-l border-dashed opacity-30"
+                            :class="guide.color"
+                            :style="{ left: guide.position + 'px' }"
+                        >
+                            <div class="absolute -top-6 left-1 text-xs bg-white px-1 rounded" :class="guide.textColor">
+                                {{ guide.label }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alignment Guidelines -->
+                    <div v-for="guideline in guidelines" :key="`${guideline.type}-${guideline.position}`"
+                         :class="[
+                             'absolute bg-blue-400 pointer-events-none z-50',
+                             guideline.type === 'vertical' ? 'w-0.5 h-full' : 'h-0.5 w-full'
+                         ]"
+                         :style="{
+                             left: guideline.type === 'vertical' ? guideline.position + 'px' : '0',
+                             top: guideline.type === 'horizontal' ? guideline.position + 'px' : '0'
+                         }"></div>
                 </div>
             </div>
-
-            <!-- Guidelines -->
-            <div v-for="guideline in guidelines" :key="`${guideline.type}-${guideline.position}`"
-                 :class="[
-             'absolute bg-blue-400 pointer-events-none z-50',
-             guideline.type === 'vertical' ? 'w-0.5 h-full' : 'h-0.5 w-full'
-           ]"
-                 :style="{
-             left: guideline.type === 'vertical' ? guideline.position + 'px' : '0',
-             top: guideline.type === 'horizontal' ? guideline.position + 'px' : '0'
-           }"></div>
         </div>
 
         <!-- Context Menu -->
@@ -233,30 +242,60 @@
                 Paste
             </button>
             <button @click="toggleGrid" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">
-                {{ showGrid ? 'Hide' : 'Show' }} Grid
+                {{ props.showGrid ? 'Hide' : 'Show' }} Grid
+            </button>
+            <button @click="toggleResponsiveGuides" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">
+                {{ props.showResponsiveGuides ? 'Hide' : 'Show' }} Responsive Guides
             </button>
         </div>
     </div>
 </template>
 
 <script setup>
-import {ref, inject, computed, onMounted, onUnmounted} from 'vue'
-import {Trash2, Copy, Grid3X3, Layout, Square} from 'lucide-vue-next'
+import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
+import { Monitor, Tablet, Smartphone, Trash2, Copy, Grid3X3, Layout, Square } from 'lucide-vue-next'
+import { useResponsive } from '@/composables/useResponsive'
 
 const props = defineProps({
     elements: Array,
     selectedElement: String,
+    activeBreakpoint: {
+        type: String,
+        default: 'desktop'
+    },
+    showGrid: {
+        type: Boolean,
+        default: true
+    },
+    showResponsiveGuides: {
+        type: Boolean,
+        default: true
+    },
+    zoom: {
+        type: Number,
+        default: 1
+    }
 })
 
 const emit = defineEmits(['update:elements', 'update:selectedElement'])
 
-const {draggedItem, isDragging} = inject('dragDrop')
+// Composables
+const { breakpoints } = useResponsive()
+
+// Inject drag and drop context
+const dragDropContext = inject('dragDrop', {
+    draggedItem: ref(null),
+    isDragging: ref(false)
+})
+
+const { draggedItem, isDragging } = dragDropContext
+
+// Refs
 const canvasRef = ref(null)
 const dragOver = ref(false)
-const showGrid = ref(true)
 const gridSize = ref(20)
 const guidelines = ref([])
-const contextMenu = ref({show: false, x: 0, y: 0})
+const contextMenu = ref({ show: false, x: 0, y: 0 })
 const copiedElement = ref(null)
 
 // Dragging state
@@ -282,26 +321,136 @@ const resizing = ref({
     startTop: 0
 })
 
+// Add icons to breakpoints
+const breakpointsWithIcons = breakpoints.map(bp => ({
+    ...bp,
+    icon: bp.id === 'mobile' ? Smartphone : bp.id === 'tablet' ? Tablet : Monitor
+}))
+
+// Get current breakpoint based on the prop
+const getCurrentBreakpoint = () => {
+    return breakpointsWithIcons.find(bp => bp.id === props.activeBreakpoint)
+}
+
+// Canvas styling based on active breakpoint with visual differences
+const canvasStyle = computed(() => {
+    const currentBp = breakpointsWithIcons.find(bp => bp.id === props.activeBreakpoint)
+    return {
+        width: currentBp?.width + 'px',
+        minHeight: '800px',
+        transform: `scale(${props.zoom})`,
+        transformOrigin: 'top center',
+        // Add border color to indicate breakpoint
+        border: currentBp?.id === 'mobile' ? '4px solid #10b981' :
+            currentBp?.id === 'tablet' ? '4px solid #f59e0b' :
+                '4px solid #3b82f6',
+        // Add background pattern for mobile to make it more obvious
+        backgroundColor: currentBp?.id === 'mobile' ? '#f0fdf4' : '#ffffff'
+    }
+})
+
+const canvasContentStyle = computed(() => ({
+    width: '100%',
+    height: '100%',
+    minHeight: '800px'
+}))
+
 // Grid style
 const gridStyle = computed(() => ({
     backgroundImage: `
-    linear-gradient(to right, #e5e7eb 1px, transparent 1px),
-    linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
-  `,
+        linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+        linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
+    `,
     backgroundSize: `${gridSize.value}px ${gridSize.value}px`,
-    opacity: 0.5
+    opacity: 0.3
 }))
+
+// Responsive guides
+const responsiveGuides = computed(() => {
+    const currentWidth = breakpointsWithIcons.find(bp => bp.id === props.activeBreakpoint)?.width || 1200
+    const guides = []
+
+    breakpoints.forEach(bp => {
+        if (bp.id !== props.activeBreakpoint && bp.width < currentWidth) {
+            guides.push({
+                width: bp.width,
+                position: bp.width,
+                label: bp.name,
+                color: bp.id === 'mobile' ? 'border-green-400' : 'border-orange-400',
+                textColor: bp.id === 'mobile' ? 'text-green-600' : 'text-orange-600'
+            })
+        }
+    })
+
+    return guides
+})
+
+// Filter visible elements for current breakpoint
+const visibleElements = computed(() => {
+    return props.elements.filter(element => {
+        // Skip hidden elements
+        if (element.properties?.hidden) return false
+
+        // Check responsive visibility
+        const responsiveProps = element.responsiveProperties || {}
+        const breakpointProps = responsiveProps[props.activeBreakpoint] || {}
+
+        // If no responsive settings, show by default
+        if (!responsiveProps[props.activeBreakpoint]) return true
+
+        // Check visibility setting for this breakpoint
+        return breakpointProps.visible !== false
+    })
+})
+
+// Get element style with responsive properties
+const getElementStyle = (element) => {
+    const baseStyle = {
+        left: element.x + 'px',
+        top: element.y + 'px',
+        width: element.width + 'px',
+        height: element.height + 'px',
+        zIndex: props.selectedElement === element.id ? 1000 : element.zIndex || 1,
+        opacity: element.properties?.locked ? 0.7 : 1
+    }
+
+    // Apply responsive overrides
+    const responsiveProps = element.responsiveProperties || {}
+    const breakpointProps = responsiveProps[props.activeBreakpoint] || {}
+
+    // Override base properties with breakpoint-specific ones
+    if (breakpointProps.x !== undefined) baseStyle.left = breakpointProps.x + 'px'
+    if (breakpointProps.y !== undefined) baseStyle.top = breakpointProps.y + 'px'
+    if (breakpointProps.width !== undefined) baseStyle.width = breakpointProps.width + 'px'
+    if (breakpointProps.height !== undefined) baseStyle.height = breakpointProps.height + 'px'
+
+    return baseStyle
+}
 
 // Snap to grid function
 const snapToGrid = (value) => {
     return Math.round(value / gridSize.value) * gridSize.value
 }
 
-// Methods
-const selectElement = (id) => {
-    emit('update:selectedElement', id)
+// Default properties for different element types
+const getDefaultProperties = (type) => {
+    switch (type) {
+        case "text":
+            return { content: "Sample text", fontSize: 16, color: "#000000", fontWeight: "normal", textAlign: "left" }
+        case "heading":
+            return { content: "Heading", fontSize: 24, color: "#000000", level: 1, textAlign: "left" }
+        case "button":
+            return { text: "Button", backgroundColor: "#3b82f6", textColor: "#ffffff", fontSize: "16", borderRadius: "4px" }
+        case "image":
+            return { src: "/placeholder.svg?height=200&width=200", alt: "Image", objectFit: "cover", borderRadius: "0px" }
+        case "container":
+            return { backgroundColor: "transparent", padding: "20px" }
+        default:
+            return {}
+    }
 }
 
+// Event handlers
 const handleDragOver = (e) => {
     e.preventDefault()
     dragOver.value = true
@@ -330,33 +479,22 @@ const handleDrop = (e) => {
             height: snapToGrid(100),
             zIndex: props.elements.length + 1,
             properties: getDefaultProperties(draggedItem.value.type),
+            responsiveProperties: {}
         }
+
         emit('update:elements', [...props.elements, newElement])
         emit('update:selectedElement', newElement.id)
     }
 }
 
-const getDefaultProperties = (type) => {
-    switch (type) {
-        case "text":
-            return {content: "Sample text", fontSize: 16, color: "#000000", fontWeight: "normal", textAlign: "left"}
-        case "heading":
-            return {content: "Heading", fontSize: 24, color: "#000000", level: 1, textAlign: "left"}
-        case "button":
-            return {
-                text: "Button",
-                backgroundColor: "#3b82f6",
-                textColor: "#ffffff",
-                fontSize: "16",
-                borderRadius: "4px"
-            }
-        case "image":
-            return {src: "/placeholder.svg?height=200&width=200", alt: "Image", objectFit: "cover", borderRadius: "0px"}
-        case "container":
-            return {backgroundColor: "transparent", padding: "20px"}
-        default:
-            return {}
-    }
+const handleElementClick = (element) => {
+    if (element.properties?.locked || element.properties?.hidden) return
+    emit('update:selectedElement', element.id)
+}
+
+const handleElementMouseDown = (element, event) => {
+    if (element.properties?.locked || element.properties?.hidden) return
+    startDrag(element, event)
 }
 
 const startDrag = (element, e) => {
@@ -371,7 +509,7 @@ const startDrag = (element, e) => {
         elementStartY: element.y
     }
 
-    selectElement(element.id)
+    emit('update:selectedElement', element.id)
     document.addEventListener('mousemove', handleDragMove)
     document.addEventListener('mouseup', handleDragEnd)
 }
@@ -385,12 +523,26 @@ const handleDragMove = (e) => {
     const newX = snapToGrid(dragging.value.elementStartX + deltaX)
     const newY = snapToGrid(dragging.value.elementStartY + deltaY)
 
-    // Update element position
-    const updatedElements = props.elements.map(el =>
-        el.id === dragging.value.element.id
-            ? {...el, x: Math.max(0, newX), y: Math.max(0, newY)}
-            : el
-    )
+    // Update element position (respecting responsive properties)
+    const updatedElements = props.elements.map(el => {
+        if (el.id === dragging.value.element.id) {
+            const responsiveProps = el.responsiveProperties || {}
+            const breakpointProps = responsiveProps[props.activeBreakpoint] || {}
+
+            return {
+                ...el,
+                responsiveProperties: {
+                    ...responsiveProps,
+                    [props.activeBreakpoint]: {
+                        ...breakpointProps,
+                        x: Math.max(0, newX),
+                        y: Math.max(0, newY)
+                    }
+                }
+            }
+        }
+        return el
+    })
     emit('update:elements', updatedElements)
 
     // Show guidelines
@@ -430,7 +582,7 @@ const handleResizeMove = (e) => {
 
     const deltaX = e.clientX - resizing.value.startX
     const deltaY = e.clientY - resizing.value.startY
-    const {handle, element, startWidth, startHeight, startLeft, startTop} = resizing.value
+    const { handle, element, startWidth, startHeight, startLeft, startTop } = resizing.value
 
     let newWidth = startWidth
     let newHeight = startHeight
@@ -449,12 +601,28 @@ const handleResizeMove = (e) => {
         newY = snapToGrid(startTop + deltaY)
     }
 
-    // Update element
-    const updatedElements = props.elements.map(el =>
-        el.id === element.id
-            ? {...el, width: newWidth, height: newHeight, x: newX, y: newY}
-            : el
-    )
+    // Update element with responsive properties
+    const updatedElements = props.elements.map(el => {
+        if (el.id === element.id) {
+            const responsiveProps = el.responsiveProperties || {}
+            const breakpointProps = responsiveProps[props.activeBreakpoint] || {}
+
+            return {
+                ...el,
+                responsiveProperties: {
+                    ...responsiveProps,
+                    [props.activeBreakpoint]: {
+                        ...breakpointProps,
+                        width: newWidth,
+                        height: newHeight,
+                        x: newX,
+                        y: newY
+                    }
+                }
+            }
+        }
+        return el
+    })
     emit('update:elements', updatedElements)
 }
 
@@ -472,12 +640,12 @@ const showGuidelines = (x, y) => {
         if (el.id === dragging.value.element.id) return
 
         // Vertical alignment
-        if (Math.abs(el.x - x) < 5) guides.push({type: 'vertical', position: el.x})
-        if (Math.abs(el.x + el.width - x) < 5) guides.push({type: 'vertical', position: el.x + el.width})
+        if (Math.abs(el.x - x) < 5) guides.push({ type: 'vertical', position: el.x })
+        if (Math.abs(el.x + el.width - x) < 5) guides.push({ type: 'vertical', position: el.x + el.width })
 
         // Horizontal alignment
-        if (Math.abs(el.y - y) < 5) guides.push({type: 'horizontal', position: el.y})
-        if (Math.abs(el.y + el.height - y) < 5) guides.push({type: 'horizontal', position: el.y + el.height})
+        if (Math.abs(el.y - y) < 5) guides.push({ type: 'horizontal', position: el.y })
+        if (Math.abs(el.y + el.height - y) < 5) guides.push({ type: 'horizontal', position: el.y + el.height })
     })
 
     guidelines.value = guides
@@ -514,7 +682,12 @@ const handleRightClick = (e) => {
 }
 
 const toggleGrid = () => {
-    showGrid.value = !showGrid.value
+    // This should be handled by parent component
+    contextMenu.value.show = false
+}
+
+const toggleResponsiveGuides = () => {
+    // This should be handled by parent component
     contextMenu.value.show = false
 }
 
@@ -560,43 +733,6 @@ const hideContextMenu = () => {
     contextMenu.value.show = false
 }
 
-const visibleElements = computed(() =>
-    props.elements.filter(el => !el.properties?.hidden)
-)
-
-const handleElementClick = (element) => {
-    console.log('🖱️ Element clicked:', element.name, 'Hidden:', element.properties?.hidden, 'Locked:', element.properties?.locked)
-
-    if (element.properties?.locked) {
-        console.log('❌ Cannot select locked element')
-        return
-    }
-
-    if (element.properties?.hidden) {
-        console.log('❌ Cannot select hidden element')
-        return
-    }
-
-    console.log('✅ Selecting element:', element.id)
-    selectElement(element.id)
-}
-
-const handleElementMouseDown = (element, event) => {
-    console.log('🖱️ Element mousedown:', element.name, 'Hidden:', element.properties?.hidden, 'Locked:', element.properties?.locked)
-
-    if (element.properties?.locked) {
-        console.log('❌ Cannot drag locked element')
-        return
-    }
-
-    if (element.properties?.hidden) {
-        console.log('❌ Cannot drag hidden element')
-        return
-    }
-
-    startDrag(element, event)
-}
-
 onMounted(() => {
     document.addEventListener('keydown', handleKeydown)
     document.addEventListener('click', hideContextMenu)
@@ -610,6 +746,4 @@ onUnmounted(() => {
     document.removeEventListener('mousemove', handleResizeMove)
     document.removeEventListener('mouseup', handleResizeEnd)
 })
-
-
 </script>

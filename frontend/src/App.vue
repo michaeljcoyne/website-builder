@@ -7,6 +7,7 @@
                 @preview="previewProject"
                 @export="exportProject"
                 :is-saving="isSaving"
+                :active-breakpoint="activeBreakpoint"
                 :can-undo="canUndo"
                 :can-redo="canRedo"
                 :zoom="zoom"
@@ -19,32 +20,58 @@
                 @toggle-grid="showGrid = !showGrid"
                 @toggle-guides="showResponsiveGuides = !showResponsiveGuides"
                 @open-settings="showSettingsModal = true"
+                @breakpoint-change="setBreakpoint"
             />
 
             <div class="flex-1 flex overflow-hidden">
-                <ComponentSidebar />
+                <!-- Left: Components Sidebar -->
+                <div class="w-64 flex-shrink-0">
+                    <ComponentSidebar />
+                </div>
 
-                <div class="flex-1 flex">
-                    <!-- Use ResponsiveCanvas instead of Canvas -->
+                <!-- Middle: Canvas Area -->
+                <div class="flex-1 min-w-0 relative">
                     <ResponsiveCanvas
                         :elements="elements"
                         :selected-element="selectedElement"
                         :show-grid="showGrid"
                         :show-responsive-guides="showResponsiveGuides"
                         :zoom="zoom"
+                        :active-breakpoint="activeBreakpoint"
                         @update:elements="setElements"
                         @update:selectedElement="setSelectedElement"
                     />
 
-                    <div class="w-80 border-l bg-white flex flex-col">
+                    <!-- Panel Toggle Button -->
+                    <button
+                        @click="showRightPanel = !showRightPanel"
+                        class="absolute top-2 right-2 z-50 bg-white border border-gray-300 rounded p-1.5 shadow hover:bg-gray-50 transition-colors"
+                        :title="showRightPanel ? 'Hide Panel (Ctrl+P)' : 'Show Panel (Ctrl+P)'"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path v-if="showRightPanel" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Right: Properties Panel - Toggleable -->
+                <div
+                    v-if="showRightPanel"
+                    class="w-80 flex-shrink-0 bg-white border-l flex flex-col transition-all duration-300 ease-in-out overflow-hidden"
+                >
+                    <!-- Layers Panel -->
+                    <div class="flex-shrink-0 h-80 border-b overflow-y-auto">
                         <LayersPanel
                             :elements="elements"
                             :selectedElement="selectedElement"
                             @update:selectedElement="setSelectedElement"
                             @update:elements="setElements"
                         />
+                    </div>
 
-                        <!-- Use ResponsivePropertiesPanel instead of PropertiesPanel -->
+                    <!-- Properties Panel -->
+                    <div class="flex-1 min-h-0 overflow-y-auto">
                         <ResponsivePropertiesPanel
                             :selected-element="selectedElement"
                             :elements="elements"
@@ -62,7 +89,7 @@
             @select-template="loadTemplate"
         />
 
-        <!-- Settings Modal (optional - you can create this later) -->
+        <!-- Settings Modal -->
         <div v-if="showSettingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
                 <h3 class="text-lg font-semibold mb-4">Settings</h3>
@@ -113,7 +140,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProjects } from '@/composables/useProjects'
 import { useResponsive } from '@/composables/useResponsive'
@@ -132,7 +159,7 @@ import TemplateLibrary from './components/templates/TemplateLibrary.vue'
 const route = useRoute()
 const router = useRouter()
 const { saveProject: apiSaveProject, fetchProject, exportProject: apiExportProject } = useProjects()
-const { activeBreakpoint } = useResponsive()
+const { activeBreakpoint, setBreakpoint } = useResponsive()
 
 // State
 const selectedElement = ref(null)
@@ -148,6 +175,7 @@ const showGrid = ref(true)
 const showResponsiveGuides = ref(true)
 const zoom = ref(1)
 const canvasSize = ref({ width: 1200, height: 800 })
+const showRightPanel = ref(true) // Add toggleable right panel
 
 // History state for undo/redo
 const history = ref([])
@@ -326,9 +354,29 @@ const handleZoom = (action) => {
     }
 }
 
+// Keyboard shortcuts
+const handleKeydown = (e) => {
+    // Panel toggle shortcut
+    if (e.key === 'p' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        showRightPanel.value = !showRightPanel.value
+    }
+}
+
+// Breakpoint change handler
+const handleBreakpointChange = (breakpointId) => {
+    console.log('App received breakpoint change:', breakpointId)
+    setBreakpoint(breakpointId)
+}
+
 // Lifecycle
 onMounted(() => {
     loadProject()
+    document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+    document.removeEventListener('keydown', handleKeydown)
 })
 
 // Watch for route changes

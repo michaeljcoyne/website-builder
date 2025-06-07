@@ -33,15 +33,15 @@
         <div class="flex items-center gap-1">
             <span class="text-xs font-medium text-gray-700 mr-2">Breakpoint:</span>
             <button
-                v-for="breakpoint in breakpoints"
+                v-for="breakpoint in breakpointsWithIcons"
                 :key="breakpoint.id"
-                @click="$emit('update:activeBreakpoint', breakpoint.id)"
+                @click="setBreakpoint(breakpoint.id)"
                 :class="[
-          'flex items-center gap-1 px-3 py-1.5 text-sm rounded transition-colors',
-          activeBreakpoint === breakpoint.id
-            ? 'bg-blue-100 text-blue-700 border border-blue-300'
-            : 'hover:bg-gray-100 text-gray-600'
-        ]"
+                    'flex items-center gap-1 px-3 py-1.5 text-sm rounded transition-colors',
+                    activeBreakpoint === breakpoint.id
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                        : 'hover:bg-gray-100 text-gray-600'
+                ]"
                 :title="`${breakpoint.name} (${breakpoint.width}px)`"
             >
                 <component :is="breakpoint.icon" class="h-4 w-4" />
@@ -55,6 +55,34 @@
         <div class="text-xs text-gray-500">
             {{ getCurrentBreakpoint()?.width }}px
             <span v-if="canvasSize"> • {{ canvasSize.width }}×{{ canvasSize.height }}</span>
+        </div>
+
+        <div class="h-6 w-px bg-gray-300 mx-2"></div>
+
+        <!-- View Controls -->
+        <div class="flex items-center gap-1">
+            <button
+                @click="$emit('toggle-grid')"
+                :class="[
+                    'flex items-center gap-1 px-2 py-1.5 text-sm rounded transition-colors',
+                    showGrid ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                ]"
+                title="Toggle Grid"
+            >
+                <Grid3X3 class="h-4 w-4" />
+                <span class="hidden md:inline">Grid</span>
+            </button>
+            <button
+                @click="$emit('toggle-guides')"
+                :class="[
+                    'flex items-center gap-1 px-2 py-1.5 text-sm rounded transition-colors',
+                    showGuides ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                ]"
+                title="Toggle Responsive Guides"
+            >
+                <AlignLeft class="h-4 w-4" />
+                <span class="hidden md:inline">Guides</span>
+            </button>
         </div>
 
         <div class="h-6 w-px bg-gray-300 mx-2"></div>
@@ -102,7 +130,11 @@
             <div class="h-6 w-px bg-gray-300 mx-2"></div>
 
             <!-- Settings -->
-            <button class="p-1.5 hover:bg-gray-100 rounded">
+            <button
+                @click="$emit('open-settings')"
+                class="p-1.5 hover:bg-gray-100 rounded"
+                title="Settings"
+            >
                 <Settings class="h-4 w-4" />
             </button>
         </div>
@@ -110,11 +142,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import {
     Save, Eye, Download, Undo, Redo, Monitor, Tablet, Smartphone, Settings,
-    ZoomIn, ZoomOut
+    ZoomIn, ZoomOut, Grid3X3, AlignLeft
 } from 'lucide-vue-next'
+import { useResponsive } from '@/composables/useResponsive'
 
 const props = defineProps({
     isSaving: {
@@ -140,18 +172,28 @@ const props = defineProps({
     canvasSize: {
         type: Object,
         default: null
+    },
+    showGrid: {
+        type: Boolean,
+        default: true
+    },
+    showGuides: {
+        type: Boolean,
+        default: true
     }
 })
 
-defineEmits(['save', 'preview', 'export', 'update:activeBreakpoint', 'undo', 'redo', 'zoom'])
+defineEmits([
+    'save', 'preview', 'export', 'undo', 'redo', 'zoom',
+    'toggle-grid', 'toggle-guides', 'open-settings'
+])
 
-const breakpoints = [
-    { id: 'mobile', name: 'Mobile', width: 375, icon: Smartphone },
-    { id: 'tablet', name: 'Tablet', width: 768, icon: Tablet },
-    { id: 'desktop', name: 'Desktop', width: 1200, icon: Monitor }
-]
+// Use the responsive composable directly
+const { activeBreakpoint, breakpoints, getCurrentBreakpoint, setBreakpoint } = useResponsive()
 
-const getCurrentBreakpoint = () => {
-    return breakpoints.find(bp => bp.id === props.activeBreakpoint)
-}
+// Add icons to breakpoints for display
+const breakpointsWithIcons = breakpoints.map(bp => ({
+    ...bp,
+    icon: bp.id === 'mobile' ? Smartphone : bp.id === 'tablet' ? Tablet : Monitor
+}))
 </script>
