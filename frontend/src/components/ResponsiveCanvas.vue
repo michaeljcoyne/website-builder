@@ -41,7 +41,7 @@
             </div>
 
             <!-- Debug Info -->
-            <div class="absolute top-4 right-4 bg-white p-2 rounded shadow text-xs max-w-xs">
+            <!--<div class="absolute top-4 right-4 bg-white p-2 rounded shadow text-xs max-w-xs">
                 <div class="font-semibold mb-1">Canvas Debug:</div>
                 <div>Total elements: {{ elements.length }}</div>
                 <div>Visible elements: {{ visibleElements.length }}</div>
@@ -57,7 +57,7 @@
       </span>
                     </div>
                 </div>
-            </div>
+            </div>-->
 
             <!-- Elements -->
             <div
