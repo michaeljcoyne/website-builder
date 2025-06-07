@@ -1,4 +1,4 @@
-<!-- ResponsiveCanvas.vue - Enhanced Canvas with Responsive Design -->
+<!-- Enhanced Canvas.vue with Grid System, Snapping, and Responsive Design -->
 <template>
     <div class="flex-1 relative bg-gray-100">
         <!-- Canvas Container with Responsive Frame -->
@@ -14,15 +14,6 @@
                     :style="gridStyle"
                 ></div>
 
-                <!-- Breakpoint Indicator -->
-                <div class="absolute top-2 left-2 z-50 bg-white rounded shadow-sm border px-2 py-1">
-                    <div class="flex items-center gap-2 text-xs">
-                        <component :is="getCurrentBreakpoint()?.icon" class="h-3 w-3 text-blue-600" />
-                        <span class="font-medium">{{ getCurrentBreakpoint()?.name }}</span>
-                        <span class="text-gray-500">{{ getCurrentBreakpoint()?.width }}px</span>
-                    </div>
-                </div>
-
                 <!-- Canvas Content -->
                 <div
                     ref="canvasRef"
@@ -35,9 +26,17 @@
                     @click="$emit('update:selectedElement', null)"
                     @contextmenu.prevent="handleRightClick"
                 >
+                    <!-- Breakpoint Indicator -->
+                    <div class="absolute top-2 left-2 z-50 bg-white rounded shadow-sm border px-2 py-1">
+                        <div class="flex items-center gap-2 text-xs">
+                            <component :is="getCurrentBreakpoint()?.icon" class="h-3 w-3 text-blue-600" />
+                            <span class="font-medium">{{ getCurrentBreakpoint()?.name }}</span>
+                            <span class="text-gray-500">{{ getCurrentBreakpoint()?.width }}px</span>
+                        </div>
+                    </div>
+
                     <!-- Empty State -->
-                    <div v-if="visibleElements.length === 0 && !isDragging"
-                         class="absolute inset-0 flex items-center justify-center text-gray-400">
+                    <div v-if="visibleElements.length === 0 && !isDragging" class="absolute inset-0 flex items-center justify-center text-gray-400">
                         <div class="text-center">
                             <Grid3X3 class="w-16 h-16 mx-auto mb-4 opacity-50" />
                             <div class="text-lg mb-2">Start building your website</div>
@@ -46,8 +45,7 @@
                     </div>
 
                     <!-- Drop Indicator -->
-                    <div v-if="isDragging"
-                         class="absolute inset-0 flex items-center justify-center text-blue-500 bg-blue-50/50 border-2 border-dashed border-blue-300 z-20">
+                    <div v-if="isDragging" class="absolute inset-0 flex items-center justify-center text-blue-500 bg-blue-50/50 border-2 border-dashed border-blue-300 z-20">
                         <div class="text-center">
                             <div class="text-lg mb-2">Drop component here</div>
                             <div class="text-sm">Release to add {{ draggedItem?.name }} to your page</div>
@@ -59,10 +57,10 @@
                         v-for="element in visibleElements"
                         :key="element.id"
                         :class="[
-                            'absolute border-2 transition-all duration-200',
-                            selectedElement === element.id ? 'border-blue-500 shadow-lg' : 'border-transparent hover:border-gray-300',
-                            element.properties?.locked ? 'cursor-not-allowed' : 'cursor-pointer'
-                        ]"
+              'absolute border-2 transition-all duration-200',
+              selectedElement === element.id ? 'border-blue-500 shadow-lg' : 'border-transparent hover:border-gray-300',
+              element.properties?.locked ? 'cursor-not-allowed' : 'cursor-pointer'
+            ]"
                         :style="getElementStyle(element)"
                         @click.stop="handleElementClick(element)"
                         @mousedown="handleElementMouseDown(element, $event)"
@@ -74,11 +72,11 @@
                                 v-if="element.type === 'text'"
                                 class="p-2 h-full flex items-center overflow-hidden"
                                 :style="{
-                                    fontSize: element.properties.fontSize + 'px',
-                                    color: element.properties.color,
-                                    fontWeight: element.properties.fontWeight || 'normal',
-                                    textAlign: element.properties.textAlign || 'left'
-                                }"
+                  fontSize: element.properties.fontSize + 'px',
+                  color: element.properties.color,
+                  fontWeight: element.properties.fontWeight || 'normal',
+                  textAlign: element.properties.textAlign || 'left'
+                }"
                             >
                                 {{ element.properties.content }}
                             </div>
@@ -89,10 +87,10 @@
                                 :is="`h${element.properties.level}`"
                                 class="p-2 h-full flex items-center font-bold overflow-hidden"
                                 :style="{
-                                    fontSize: element.properties.fontSize + 'px',
-                                    color: element.properties.color,
-                                    textAlign: element.properties.textAlign || 'left'
-                                }"
+                  fontSize: element.properties.fontSize + 'px',
+                  color: element.properties.color,
+                  textAlign: element.properties.textAlign || 'left'
+                }"
                             >
                                 {{ element.properties.content }}
                             </component>
@@ -102,12 +100,12 @@
                                 v-else-if="element.type === 'button'"
                                 class="w-full h-full rounded px-4 py-2 transition-all duration-200 hover:opacity-90"
                                 :style="{
-                                    backgroundColor: element.properties.backgroundColor,
-                                    color: element.properties.textColor,
-                                    fontSize: element.properties.fontSize || '16px',
-                                    border: element.properties.border || 'none',
-                                    borderRadius: element.properties.borderRadius || '4px'
-                                }"
+                  backgroundColor: element.properties.backgroundColor,
+                  color: element.properties.textColor,
+                  fontSize: element.properties.fontSize || '16px',
+                  border: element.properties.border || 'none',
+                  borderRadius: element.properties.borderRadius || '4px'
+                }"
                                 @click.stop
                             >
                                 {{ element.properties.text }}
@@ -120,9 +118,9 @@
                                 :alt="element.properties.alt"
                                 class="w-full h-full object-cover rounded"
                                 :style="{
-                                    objectFit: element.properties.objectFit || 'cover',
-                                    borderRadius: element.properties.borderRadius || '0px'
-                                }"
+                  objectFit: element.properties.objectFit || 'cover',
+                  borderRadius: element.properties.borderRadius || '0px'
+                }"
                             />
 
                             <!-- Container Element -->
@@ -130,9 +128,9 @@
                                 v-else-if="element.type === 'container'"
                                 class="w-full h-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-500"
                                 :style="{
-                                    backgroundColor: element.properties.backgroundColor || 'transparent',
-                                    padding: element.properties.padding || '20px'
-                                }"
+                  backgroundColor: element.properties.backgroundColor || 'transparent',
+                  padding: element.properties.padding || '20px'
+                }"
                             >
                                 <div class="text-center">
                                     <Layout class="w-8 h-8 mx-auto mb-2" />
@@ -207,32 +205,15 @@
                     <!-- Alignment Guidelines -->
                     <div v-for="guideline in guidelines" :key="`${guideline.type}-${guideline.position}`"
                          :class="[
-                             'absolute bg-blue-400 pointer-events-none z-50',
-                             guideline.type === 'vertical' ? 'w-0.5 h-full' : 'h-0.5 w-full'
-                         ]"
+                 'absolute bg-blue-400 pointer-events-none z-50',
+                 guideline.type === 'vertical' ? 'w-0.5 h-full' : 'h-0.5 w-full'
+               ]"
                          :style="{
-                             left: guideline.type === 'vertical' ? guideline.position + 'px' : '0',
-                             top: guideline.type === 'horizontal' ? guideline.position + 'px' : '0'
-                         }"></div>
+                 left: guideline.type === 'vertical' ? guideline.position + 'px' : '0',
+                 top: guideline.type === 'horizontal' ? guideline.position + 'px' : '0'
+               }"></div>
                 </div>
             </div>
-        </div>
-
-        <!-- Context Menu -->
-        <div
-            v-if="contextMenu.show"
-            class="absolute bg-white border shadow-lg rounded py-1 z-[9999]"
-            :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
-        >
-            <button @click="pasteElement" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">
-                Paste
-            </button>
-            <button @click="toggleGrid" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">
-                {{ showGrid ? 'Hide' : 'Show' }} Grid
-            </button>
-            <button @click="toggleResponsiveGuides" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">
-                {{ showResponsiveGuides ? 'Hide' : 'Show' }} Responsive Guides
-            </button>
         </div>
     </div>
 </template>
@@ -240,16 +221,15 @@
 <script setup>
 import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
 import { Monitor, Tablet, Smartphone, Trash2, Copy, Grid3X3, Layout, Square } from 'lucide-vue-next'
-import { useResponsive } from '@/composables/useResponsive'
 
 const props = defineProps({
     elements: Array,
     selectedElement: String,
-    showGrid: {
-        type: Boolean,
-        default: true
+    activeBreakpoint: {
+        type: String,
+        default: 'desktop'
     },
-    showResponsiveGuides: {
+    showGrid: {
         type: Boolean,
         default: true
     },
@@ -261,9 +241,6 @@ const props = defineProps({
 
 const emit = defineEmits(['update:elements', 'update:selectedElement'])
 
-// Composables
-const { activeBreakpoint, breakpoints, getCurrentBreakpoint } = useResponsive()
-
 // Inject drag and drop context
 const dragDropContext = inject('dragDrop', {
     draggedItem: ref(null),
@@ -271,6 +248,13 @@ const dragDropContext = inject('dragDrop', {
 })
 
 const { draggedItem, isDragging } = dragDropContext
+
+// Breakpoints configuration
+const breakpoints = [
+    { id: 'mobile', name: 'Mobile', width: 375, icon: Smartphone },
+    { id: 'tablet', name: 'Tablet', width: 768, icon: Tablet },
+    { id: 'desktop', name: 'Desktop', width: 1200, icon: Monitor }
+]
 
 // Refs
 const canvasRef = ref(null)
@@ -305,6 +289,11 @@ const resizing = ref({
     startTop: 0
 })
 
+// Get current breakpoint data
+const getCurrentBreakpoint = () => {
+    return breakpoints.find(bp => bp.id === props.activeBreakpoint)
+}
+
 // Canvas styling based on active breakpoint
 const canvasStyle = computed(() => ({
     width: getCurrentBreakpoint()?.width + 'px',
@@ -322,9 +311,9 @@ const canvasContentStyle = computed(() => ({
 // Grid style
 const gridStyle = computed(() => ({
     backgroundImage: `
-        linear-gradient(to right, #e5e7eb 1px, transparent 1px),
-        linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
-    `,
+    linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+    linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
+  `,
     backgroundSize: `${gridSize.value}px ${gridSize.value}px`,
     opacity: 0.3
 }))
@@ -335,7 +324,7 @@ const responsiveGuides = computed(() => {
     const guides = []
 
     breakpoints.forEach(bp => {
-        if (bp.id !== activeBreakpoint.value && bp.width < currentWidth) {
+        if (bp.id !== props.activeBreakpoint && bp.width < currentWidth) {
             guides.push({
                 width: bp.width,
                 position: bp.width,
@@ -357,15 +346,20 @@ const visibleElements = computed(() => {
 
         // Check responsive visibility
         const responsiveProps = element.responsiveProperties || {}
-        const breakpointProps = responsiveProps[activeBreakpoint.value] || {}
+        const breakpointProps = responsiveProps[props.activeBreakpoint] || {}
 
         // If no responsive settings, show by default
-        if (!responsiveProps[activeBreakpoint.value]) return true
+        if (!responsiveProps[props.activeBreakpoint]) return true
 
         // Check visibility setting for this breakpoint
         return breakpointProps.visible !== false
     })
 })
+
+// Get selected element data
+const selectedElementData = computed(() =>
+    props.elements.find(el => el.id === props.selectedElement)
+)
 
 // Get element style with responsive properties
 const getElementStyle = (element) => {
@@ -380,7 +374,7 @@ const getElementStyle = (element) => {
 
     // Apply responsive overrides
     const responsiveProps = element.responsiveProperties || {}
-    const breakpointProps = responsiveProps[activeBreakpoint.value] || {}
+    const breakpointProps = responsiveProps[props.activeBreakpoint] || {}
 
     // Override base properties with breakpoint-specific ones
     if (breakpointProps.x !== undefined) baseStyle.left = breakpointProps.x + 'px'
@@ -394,6 +388,40 @@ const getElementStyle = (element) => {
 // Snap to grid function
 const snapToGrid = (value) => {
     return Math.round(value / gridSize.value) * gridSize.value
+}
+
+// Check if element is visible on specific breakpoint
+const isVisibleOnBreakpoint = (element, breakpointId) => {
+    if (!element) return true
+    const responsiveProps = element.responsiveProperties || {}
+    const breakpointProps = responsiveProps[breakpointId] || {}
+    return breakpointProps.visible !== false
+}
+
+// Toggle element visibility for specific breakpoint
+const toggleBreakpointVisibility = (breakpointId, visible) => {
+    if (!props.selectedElement) return
+
+    const updatedElements = props.elements.map(el => {
+        if (el.id === props.selectedElement) {
+            const responsiveProperties = el.responsiveProperties || {}
+            const breakpointProps = responsiveProperties[breakpointId] || {}
+
+            return {
+                ...el,
+                responsiveProperties: {
+                    ...responsiveProperties,
+                    [breakpointId]: {
+                        ...breakpointProps,
+                        visible
+                    }
+                }
+            }
+        }
+        return el
+    })
+
+    emit('update:elements', updatedElements)
 }
 
 // Default properties for different element types
@@ -443,7 +471,6 @@ const handleDrop = (e) => {
             height: snapToGrid(100),
             zIndex: props.elements.length + 1,
             properties: getDefaultProperties(draggedItem.value.type),
-            responsiveProperties: {}
         }
 
         emit('update:elements', [...props.elements, newElement])
@@ -487,26 +514,12 @@ const handleDragMove = (e) => {
     const newX = snapToGrid(dragging.value.elementStartX + deltaX)
     const newY = snapToGrid(dragging.value.elementStartY + deltaY)
 
-    // Update element position (respecting responsive properties)
-    const updatedElements = props.elements.map(el => {
-        if (el.id === dragging.value.element.id) {
-            const responsiveProps = el.responsiveProperties || {}
-            const breakpointProps = responsiveProps[activeBreakpoint.value] || {}
-
-            return {
-                ...el,
-                responsiveProperties: {
-                    ...responsiveProps,
-                    [activeBreakpoint.value]: {
-                        ...breakpointProps,
-                        x: Math.max(0, newX),
-                        y: Math.max(0, newY)
-                    }
-                }
-            }
-        }
-        return el
-    })
+    // Update element position
+    const updatedElements = props.elements.map(el =>
+        el.id === dragging.value.element.id
+            ? { ...el, x: Math.max(0, newX), y: Math.max(0, newY) }
+            : el
+    )
     emit('update:elements', updatedElements)
 
     // Show guidelines
@@ -565,28 +578,12 @@ const handleResizeMove = (e) => {
         newY = snapToGrid(startTop + deltaY)
     }
 
-    // Update element with responsive properties
-    const updatedElements = props.elements.map(el => {
-        if (el.id === element.id) {
-            const responsiveProps = el.responsiveProperties || {}
-            const breakpointProps = responsiveProps[activeBreakpoint.value] || {}
-
-            return {
-                ...el,
-                responsiveProperties: {
-                    ...responsiveProps,
-                    [activeBreakpoint.value]: {
-                        ...breakpointProps,
-                        width: newWidth,
-                        height: newHeight,
-                        x: newX,
-                        y: newY
-                    }
-                }
-            }
-        }
-        return el
-    })
+    // Update element
+    const updatedElements = props.elements.map(el =>
+        el.id === element.id
+            ? { ...el, width: newWidth, height: newHeight, x: newX, y: newY }
+            : el
+    )
     emit('update:elements', updatedElements)
 }
 
